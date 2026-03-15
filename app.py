@@ -18,13 +18,22 @@ def load_data():
     # Use period='5y' for last 5 years
     df = silver.history(period="5y")
     df.reset_index(inplace=True)
-    # Remove timezone so Prophet won't complain
-    df['Date'] = df['Date'].dt.tz_localize(None) 
+    # Remove timezone safely so Prophet won't complain
+    if df['Date'].dt.tz is not None:
+        df['Date'] = df['Date'].dt.tz_localize(None)
     return df
 
 data_load_state = st.text("Loading data...")
-df = load_data()
-data_load_state.text("Data loaded successfully!")
+try:
+    df = load_data()
+    if df.empty:
+        st.error("Error: Yahoo Finance returned empty data. It might be rate-limiting Cloud IPs.")
+        st.stop()
+    data_load_state.text("Data loaded successfully!")
+except Exception as e:
+    st.error(f"Error loading data: {e}")
+    st.stop()
+
 
 st.subheader("Historical Data (Last 5 Years)")
 st.dataframe(df.tail())
